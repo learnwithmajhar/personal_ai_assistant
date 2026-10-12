@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+﻿from sqlalchemy.orm import Session
 
 from backend.database.models import (
     Conversation,
@@ -74,34 +74,34 @@ def get_conversation_summary(
     )
 
 
+
 def save_conversation_summary(
     db: Session,
     conversation_id: int,
-    summary_text: str
+    summary_text: str,
+    message_count: int = 0
 ):
-
     existing_summary = get_conversation_summary(
         db=db,
         conversation_id=conversation_id
     )
 
     if existing_summary:
-
         existing_summary.summary = summary_text
-
+        existing_summary.last_summarized_message_count = message_count
     else:
-
         existing_summary = ConversationSummary(
             conversation_id=conversation_id,
-            summary=summary_text
+            summary=summary_text,
+            last_summarized_message_count=message_count
         )
-
         db.add(existing_summary)
 
     db.commit()
     db.refresh(existing_summary)
 
     return existing_summary
+
 
 
 # ==================================================

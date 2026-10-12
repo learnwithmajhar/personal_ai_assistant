@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+﻿from fastapi import FastAPI, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -357,7 +357,7 @@ def chat(
 
                 ai_response = (
                     "A matching personal memory already exists:\n\n"
-                    f"• {existing_memory.content}\n\n"
+                    f"â€¢ {existing_memory.content}\n\n"
                     "No new memory was created."
                 )
 
@@ -385,7 +385,7 @@ def chat(
                 ai_response = (
                     "I found a memory you explicitly "
                     "asked me to remember:\n\n"
-                    f"• {memory.content}\n\n"
+                    f"â€¢ {memory.content}\n\n"
                     "It is currently marked as PENDING. "
                     "Please review and approve it before "
                     "I use it as permanent personal memory."
@@ -405,53 +405,66 @@ def chat(
     )
 
 
+
+
+
     # ------------------------------------------------
     # STEP 10
     # Conversation summary
     # ------------------------------------------------
 
-    all_messages = (
-        get_conversation_messages(
+    all_messages = get_conversation_messages(
+        db=db,
+        conversation_id=conversation_id
+    )
 
-            db=db,
+    total_messages = len(all_messages)
 
-            conversation_id=conversation_id
+    summary_record = get_conversation_summary(
+        db=db,
+        conversation_id=conversation_id
+    )
+
+    last_summarized_count = (
+        summary_record.last_summarized_message_count
+        if summary_record
+        else 0
+    )
+
+    new_message_count = total_messages - last_summarized_count
+
+    should_update_summary = (
+        total_messages >= 6
+        and (
+            summary_record is None
+            or new_message_count >= 6
         )
     )
 
-
-    if len(all_messages) >= 6:
-
+    if should_update_summary:
         messages_for_summary = [
-
             {
                 "role": msg.role,
-
                 "content": msg.content
             }
-
             for msg in all_messages
         ]
 
-
-        updated_summary = (
-            generate_conversation_summary(
-
+        try:
+            updated_summary = generate_conversation_summary(
                 messages=messages_for_summary,
-
                 existing_summary=conversation_summary
             )
-        )
 
+            save_conversation_summary(
+                db=db,
+                conversation_id=conversation_id,
+                summary_text=updated_summary,
+                message_count=total_messages
+            )
 
-        save_conversation_summary(
-
-            db=db,
-
-            conversation_id=conversation_id,
-
-            summary_text=updated_summary
-        )
+        except Exception as exc:
+            print(f"Conversation summary update failed: {exc}")
 
 
     # ------------------------------------------------

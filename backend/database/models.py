@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 
 from sqlalchemy import (
     Column,
@@ -107,6 +107,14 @@ class ConversationSummary(Base):
         Text,
         nullable=False
     )
+
+
+    last_summarized_message_count = Column(
+        Integer,
+        nullable=False,
+        default=0
+    )
+
 
     updated_at = Column(
         DateTime,
