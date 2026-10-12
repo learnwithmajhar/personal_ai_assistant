@@ -72,7 +72,6 @@ STOP_WORDS = {
 # ==================================================
 
 def normalize_text(text: str) -> str:
-
     text = text.lower()
 
     text = re.sub(
@@ -82,79 +81,50 @@ def normalize_text(text: str) -> str:
     )
 
     stop_words = {
-        "the",
-        "a",
-        "an",
-        "user",
-        "users",
-        "that",
-        "is",
-        "am",
-        "are",
-        "i",
-        "me",
-        "my",
-        "to",
-        "for",
-        "and",
-        "of",
-        "in"
+        "the", "a", "an", "user", "users",
+        "that", "is", "am", "are", "i",
+        "me", "my", "to", "for", "and",
+        "of", "in"
     }
 
     words = text.split()
 
-    normalized_words = []
+    filtered_words = [
+        word
+        for word in words
+        if word not in stop_words
+    ]
+
+    return " ".join(filtered_words)
+
+
+
+    
+def normalize_duplicate_words(text: str) -> set[str]:
+    words = normalize_text(text).split()
+    normalized = set()
 
     for word in words:
-
-        if word in stop_words:
-            continue
-
-        # Plural / third-person form
-        if (
-            len(word) > 4
-            and word.endswith("s")
-            and not word.endswith(("ss", "us", "is"))
+        if word.endswith("ies") and len(word) > 4:
+            word = word[:-3] + "y"
+        elif word.endswith("s") and len(word) > 3 and not word.endswith(
+            ("ss", "us", "is")
         ):
             word = word[:-1]
 
-        # -ies -> -y
-        elif len(word) > 5 and word.endswith("ies"):
-            word = word[:-3] + "y"
+        if word.endswith("ing") and len(word) > 5:
+            word = word[:-3]
+            if len(word) >= 2 and word[-1] == word[-2]:
+                word = word[:-1]
+        elif word.endswith("ed") and len(word) > 5:
+            word = word[:-2]
+            if len(word) >= 2 and word[-1] == word[-2]:
+                word = word[:-1]
 
-        # -ing forms
-        if len(word) > 5 and word.endswith("ing"):
+        normalized.add(word)
 
-            base = word[:-3]
+    return normalized
 
-            # running -> run
-            # programming -> program
-            if (
-                len(base) >= 2
-                and base[-1] == base[-2]
-            ):
-                base = base[:-1]
-
-            word = base
-
-        # -ed forms
-        elif len(word) > 5 and word.endswith("ed"):
-
-            base = word[:-2]
-
-            # stopped -> stop
-            # preferred -> prefer
-            if (
-                len(base) >= 2
-                and base[-1] == base[-2]
-            ):
-                base = base[:-1]
-
-            word = base
-
-        normalized_words.append(word)
-
-    return " ".join(normalized_words)
 
 # ==================================================
 # MEMORY TYPE NORMALIZATION
@@ -281,9 +251,7 @@ def find_duplicate_memory(
     if not existing_memories:
         return None
 
-    new_words = set(
-        normalize_text(content).split()
-    )
+    new_words = normalize_duplicate_words(content)
 
     if not new_words:
         return None
@@ -297,9 +265,7 @@ def find_duplicate_memory(
 
     for memory in existing_memories:
 
-        existing_words = set(
-            normalize_text(memory.content).split()
-        )
+        existing_words = normalize_duplicate_words(memory.content)
 
         if not existing_words:
             continue
@@ -344,9 +310,7 @@ def find_duplicate_memory(
     if best_match is not None:
 
         # Return original similarity without type bonus
-        original_words = set(
-            normalize_text(best_match.content).split()
-        )
+        original_words = normalize_duplicate_words(best_match.content)
 
         intersection = (
             new_words.intersection(

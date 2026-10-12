@@ -94,6 +94,27 @@ def test_duplicate_detection_identifies_identical_content(db_session):
     assert result["score"] == 1.0
 
 
+def test_duplicate_detection_handles_word_form_variations(db_session):
+    memory = PersonalMemory(
+        memory_type="preferences",
+        content="The user prefers Python for programming.",
+        status="approved",
+    )
+    db_session.add(memory)
+    db_session.commit()
+
+    result = find_duplicate_memory(
+        db_session,
+        memory_type="preferences",
+        content="I prefer Python for programming.",
+    )
+
+    assert result is not None
+    assert result["memory"].id == memory.id
+    assert result["score"] == 1.0
+
+
+
 def test_duplicate_detection_identifies_similar_word_content(db_session):
     memory = PersonalMemory(
         memory_type="skills",
